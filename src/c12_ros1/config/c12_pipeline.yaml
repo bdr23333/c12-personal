@@ -42,7 +42,7 @@ c12_tag_pose:
   aruco_dictionary: "DICT_ARUCO_ORIGINAL"
   target_id: 0
   target_code: ""
-  tag_size_m: 0.20
+  tag_size_m: 0.10
   max_detection_hz: 15.0
   use_undistort: true
   publish_debug_image: true
@@ -56,8 +56,8 @@ c12_tag_pose:
   deadband_px: 35.0
   yaw_kp: 0.006
   pitch_kp: 0.006
-  yaw_sign: 1.0
-  pitch_sign: -1.0
+  yaw_sign: -1.0
+  pitch_sign: 1.0
   max_gimbal_speed_deg_s: 3.0
   control_publish_hz: 20.0
   vision_stale_timeout_sec: 1.0
@@ -94,7 +94,7 @@ c12_tag_mission:
   world_frame: "world"
   odom_topic: "/lio/robo/odom"
   planner_goal_topic: "/remote/goal"
-  hover_height_m: 2.0
+  hover_height_m: 1.2
   min_takeoff_height_m: 0.5
   hover_stable_sec: 2.0
   hover_max_linear_speed_mps: 0.15
@@ -118,8 +118,73 @@ c12_tag_mission:
   arrival_stable_sec: 1.0
   goal_publish_hz: 2.0
 
+# ROS wrapper for the Pixhawk 6C FMU_CH7/CH8 gripper.
+
+c12_gripper_release:
+  # 是否允许“到达目标后自动打开夹爪”
+  # false 时仍然保留 /gripper/open、/gripper/close 等手动接口
+  enabled: false
+
+  auto_open_on_arrival: true
+
+  # 防止节点刚启动时，因为 /tag_mission/arrived 是 latch=true
+  # 而误读取到上一次任务的 True
+  require_fresh_arrival_edge: true
+
+  # 自动投掷时要求 PX4 已经 armed
+  require_armed_for_auto: true
+
+  # C12 mission 接口
+  arrival_topic: "/tag_mission/arrived"
+  mission_state_topic: "/tag_mission/state"
+
+  # 无人机状态
+  odom_topic: "/lio/robo/odom"
+
+  # MAVROS
+  mavros_state_topic: "/mavros/state"
+  command_service: "/mavros/cmd/command"
+
+  # 夹爪接在 Pixhawk FMU_CH7
+  # 如果物理上接 CH8，则修改为 8
+  fmu_channel: 7
+
+  # PWM 输出范围
+  output_min_pwm: 1000
+  output_max_pwm: 2000
+
+  # 软件安全限制
+  safe_min_pwm: 1100
+  safe_max_pwm: 1900
+
+  # 舵机位置
+  neutral_pwm: 1500
+  open_pwm: 1200
+  close_pwm: 1800
+
+  # 到达以后第二层稳定判断
+  max_horizontal_speed_mps: 0.15
+  max_vertical_speed_mps: 0.10
+  min_release_height_m: 0.5
+  stable_sec: 2.0
+
+  # 里程计超时
+  odom_timeout_sec: 0.5
+
+  # 同一控制命令重复发送，提高可靠性
+  command_repeats: 3
+  command_repeat_delay_sec: 0.15
+
+  # MAVROS service 等待时间
+  service_wait_timeout_sec: 2.0
+
+  # 自动投掷失败时最多重试
+  auto_max_attempts: 3
+  auto_retry_sec: 1.0
+
 c12_static_base_to_mount:
   parent_frame: "base_link"
   child_frame: "c12_mount"
   xyz: [0.10, 0.0, 0.0]
   rpy: [0.0, 0.0, -1.578]
+
